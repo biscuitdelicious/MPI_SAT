@@ -1,0 +1,15 @@
+{
+  "name": "mpi_sat",
+  "version": "1.0.0",
+  "description": "___ #### CDCL -> Conflict Driven Clause Learning. CDCL are an evolution of DPLL.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^5.8.3"
+  }
+}
