@@ -3,6 +3,12 @@
 
 // |= a model makes true, with a given predicate; M |= P
 
+
+// // CNF: ^ intre ()
+
+
 // TODO: Work on parsing DIMACS format
 // TODO: Work on DPLL core
+
+
 

@@ -1,23 +1,84 @@
-\documentclass{article}        
+\documentclass[12pt, a4paper]{article}
 
-\title{Satisfiability}
-\author{My Name}
-\date{\today}
+\usepackage[utf8]{inputenc}  
+\usepackage{amsmath}        
+\usepackage{graphicx}       
+\usepackage{hyperref}  
+\usepackage{geometry}
+       
+
+
+\title{SAT: What teachers don't tell you about solving efficiently SAT problems}
+\author{Delinschii Vladislav\\ vladislav.delinschii05@e-uvt.ro \\ West University of Timisoara}
+\date{April 2025} 
 
 \begin{document}
 \maketitle
 
+% --- The Introduction Section ---
 \section{Introduction}
-\lipsum[1]
+\label{sec:introduction} % Label for cross-referencing
 
-\section{Methods}
-\lipsum[2]
+The Boolean Satisfiability Problem (SAT) asks whether a given Boolean formula can evaluate to TRUE by assigning TRUE/FALSE values to its variables. A formula is \emph{satisfiable} if such an assignment exists, and \emph{unsatisfiable} otherwise. As the first problem proven NP-complete, SAT is central to theoretical computer science and complexity theory. Its importance extends to artificial intelligence and other domains, where problems like planning or verification can be encoded as SAT instances. The inherent computational difficulty of this NP-complete problem makes developing effective solving algorithms crucial.
 
-\section{Results}
-\lipsum[3]
+This paper focuses on comparing two foundational algorithms developed relatively early in SAT research: the Davis-Putnam (DP) procedure and its influential refinement, the Davis-Putnam-Logemann-Loveland (DPLL) algorithm. DP typically utilized variable elimination via resolution, while DPLL introduced the backtracking search paradigm fundamental to many modern solvers, crucially relying on branching heuristics.
 
-\section{Conclusion}
-\lipsum[4]
+Our goal is to present both a theoretical overview and an experimental comparison of DP and DPLL. We implemented these algorithms in TypeScript, paying particular attention to different choice strategies within DPLL. The experiments aim to analyze their performance characteristics on benchmark instances. The following sections detail the theoretical background, implementation, experimental setup, results, and conclusions.
+
+
+\section{Background and Preliminaries}
+\label{sec:background}
+
+This section outlines the fundamental concepts and algorithms relevant to Boolean Satisfiability (SAT) solving, forming the basis for the comparisons presented in this paper.
+
+\subsection{The Boolean Satisfiability Problem (SAT)}
+\label{subsec:sat_definition}
+
+The Boolean Satisfiability Problem (SAT) asks whether a given Boolean formula $F$, composed of Boolean variables and logical connectives (AND, OR, NOT), can evaluate to TRUE by assigning consistent TRUE/FALSE values to its variables. If such an assignment exists, the formula $F$ is deemed \emph{satisfiable}; otherwise, it is \emph{unsatisfiable}. For example, the simple formula $(a \land \lnot b)$ is satisfiable by assigning $a=\text{TRUE}$ and $b=\text{FALSE}$.
+
+SAT holds significant importance as the first problem proven to be NP-complete. Its NP-completeness signifies both its theoretical centrality and its practical difficulty, as no known algorithm solves all SAT instances efficiently in the worst case. Despite this hardness, SAT serves as a powerful modeling tool, enabling the encoding of numerous problems from artificial intelligence (e.g., planning, constraint satisfaction) and other computer science domains like hardware verification.
+
+\subsection{Conjunctive Normal Form (CNF)}
+\label{subsec:cnf}
+
+Most modern SAT solvers operate on formulas expressed in Conjunctive Normal Form (CNF). A formula is in CNF if it is structured as a conjunction (AND) of one or more \emph{clauses}, where each clause is a disjunction (OR) of one or more \emph{literals}. A literal is simply a Boolean variable (e.g., $x_i$) or its negation (e.g., $\lnot x_i$). For instance, the formula $(x_1 \lor \lnot x_2) \land (\lnot x_1 \lor x_3)$ is in CNF, consisting of two clauses joined by AND. Representing problems in CNF is standard practice, as any Boolean formula M can be converted into an equisatisfiable CNF formula.
+
+\subsection{Algorithms for SAT Solving}
+\label{subsec:algorithms}
+
+Over the years, various algorithms have been developed to tackle SAT. We focus on three foundational approaches:
+
+\subsubsection{Resolution}
+\label{subsubsec:resolution}
+
+Resolution is a sound and complete inference rule primarily used for proving \emph{unsatisfiability}. The rule states that given two clauses containing complementary literals, a new clause (the resolvent) can be inferred by combining the literals from both parent clauses, excluding the complementary pair. Formally:
+\[
+\frac{(A \lor x) \quad (B \lor \lnot x)}{(A \lor B)}
+\]
+where $A$ and $B$ represent disjunctions of other literals. A resolution-based procedure repeatedly applies this rule. If the empty clause (containing no literals, denoted $\Box$, representing a contradiction) can be derived, the original formula is declared unsatisfiable. While complete, resolution can suffer from generating an exponential number of intermediate clauses.
+
+\subsubsection{Davis-Putnam (DP) Algorithm}
+\label{subsubsec:dp}
+
+The original Davis-Putnam (DP) algorithm (often dated to 1960) primarily tackled SAT using \textbf {variable elimination} through resolution. It iteratively selected a variable $x$ and performed all possible resolutions between clauses containing $x$ and clauses containing $\lnot x$. After generating these resolvents, all original clauses containing $x$ or $\lnot x$ were discarded, effectively eliminating $x$. While effective for some problems, this approach could lead to significant memory consumption due to the potentially large number of generated resolvents.
+
+\subsubsection{Davis-Putnam-Logemann-Loveland (DPLL) Algorithm}
+\label{subsubsec:dpll}
+
+The Davis-Putnam-Logemann-Loveland (DPLL) algorithm (often dated to 1962), a significant refinement, replaced the costly variable elimination step of DP with a recursive backtracking search. It forms the basis of many successful modern SAT solvers. The core DPLL procedure involves applying simplification rules followed by a splitting rule:
+
+\begin{enumerate}
+    \item \textbf{Unit Propagation (or BCP - Boolean Constraint Propagation):} If a clause contains only one unassigned literal (a unit clause), that literal must be assigned the value required to satisfy the clause (TRUE if positive, FALSE if negative). This assignment typically triggers further simplifications (satisfying other clauses, shortening clauses containing the complementary literal), and the process iterates until no more unit clauses exist.
+    \item \textbf{Pure Literal Elimination:} If a variable appears only with one polarity (e.g., $x$ appears but $\lnot x$ does not) across all *currently active* clauses, that variable can be assigned the value TRUE (FALSE if only $\lnot x$ appears). Clauses satisfied by this assignment are then removed. (This rule is sometimes omitted in modern implementations).
+    \item \textbf{Splitting Rule (Branching):} If neither unit propagation nor pure literal elimination simplifies the formula further, DPLL selects an unassigned variable $x$. It then recursively attempts to solve the formula first by assuming $x = \text{TRUE}$. If this leads to unsatisfiability, it \emph{backtracks} and recursively attempts to solve the formula assuming $x = \text{FALSE}$. This branching step explores the space of possible assignments.
+\end{enumerate}
+The recursion terminates when either all clauses are satisfied (result: SAT) or an empty clause is generated via simplification (result: UNSAT).
+
+\subsection{The Role of Choice Heuristics in DPLL}
+\label{subsec:heuristics_intro}
+
+The efficiency of the DPLL algorithm's splitting rule heavily depends on the strategy used for choosing the next variable to branch on. Because the search space can be exponentially large, a good heuristic can significantly prune the search tree by leading to contradictions or solutions more quickly. Various heuristics exist, from simple ones like selecting the first unassigned variable to more complex strategies like choosing the variable involved in the most unresolved clauses. The comparison of such strategies is a key focus of this paper's experimental section.
+
 
 \end{document}
 
