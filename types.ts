@@ -10,7 +10,8 @@ type Literal = number;
 
 /*
     A set of literals. We uset set over list for performance:
-    you can't have 2 literals in the same list or even opposite.
+    you can't have 2 literals in the same list or even opposite
+    and Set comes with has() function which is very efficient for searching.
  */
 
 type Clause = Set<Literal>;
