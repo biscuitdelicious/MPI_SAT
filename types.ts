@@ -6,7 +6,7 @@
     A negative value means a negative literal, aka -2 -> !x2
 */
 
-type Literal = number;
+export type Literal = number;
 
 /*
     A set of literals. We uset set over list for performance:
@@ -14,11 +14,11 @@ type Literal = number;
     and Set comes with has() function which is very efficient for searching.
  */
 
-type Clause = Set<Literal>;
+export type Clause = Set<Literal>;
 
 // CNF: ^ intre ()
 
-type CnfFormula = Clause[];
+export type CnfFormula = Clause[];
 
 /*
     The way we would assign values to literals.
