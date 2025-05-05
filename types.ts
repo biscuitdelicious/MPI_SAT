@@ -5,28 +5,27 @@
 
     A negative value means a negative literal, aka -2 -> !x2
 */
-type Literal = {
-    value: number;
-}
+
+export type Literal = number;
 
 /*
-    A list of literals.
+    A set of literals. We uset set over list for performance:
+    you can't have 2 literals in the same list or even opposite
+    and Set comes with has() function which is very efficient for searching.
  */
-type Clause = {
-    value: Literal[];
-}
 
-
-
+export type Clause = Set<Literal>;
 
 // CNF: ^ intre ()
 
-type CnfFormula = {
-    value: Clause[];
-}
+export type CnfFormula = Clause[];
 
 /*
     The way we would assign values to literals.
+    We will use a map due to its performance for adding and removing
+    elements from it.
  */
+
+
 type Assign = Map<number, boolean>;
 
