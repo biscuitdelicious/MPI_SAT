@@ -1,0 +1,6 @@
+dp_sat_2.cnf
+dp_unsat_3.cnf
+test.cnf
+example_custom_sat.cnf
+example_custom_unsat.cnf
+

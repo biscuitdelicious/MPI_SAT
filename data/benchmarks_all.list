@@ -1,0 +1,17 @@
+dp_sat_2.cnf
+dp_unsat_3.cnf
+test.cnf
+example_custom_sat.cnf
+example_custom_unsat.cnf
+
+
+uf20-0920.cnf
+uf20-0989.cnf
+uf20-0995.cnf 
+uf100-0999.cnf
+uuf125-083.cnf
+uuf125-087.cnf
+uf125-08.cnf
+uf125-063.cnf
+
+

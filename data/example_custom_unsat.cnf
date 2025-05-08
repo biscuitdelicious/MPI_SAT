@@ -1,0 +1,4 @@
+c example_custom_unsat.cnf
+p cnf 2 2
+1 0
+-1 0
