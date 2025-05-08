@@ -93,3 +93,5 @@ The `main.ts` script is configured to run a benchmark harness that tests the DP 
 *   The core DPLL logic, including unit propagation, pure literal elimination, and variable selection heuristics, is implemented in `main.ts`.
 *   Type definitions are in `types.ts`.
 *   The classic Davis-Putnam (DP) algorithm (`dpSolver`) is also implemented. Be aware that this version uses the resolution rule for variable elimination and can consume substantial memory on non-trivial problems, potentially leading to `DP_CLAUSE_LIMIT` or `DP_MAX_ITERATIONS` results in the benchmarks.
+___
+Made with love by Vlad ❤️
