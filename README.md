@@ -32,7 +32,6 @@ The solver in `main.ts` expects input formulas in the standard **DIMACS CNF** fo
         ```bash
         npm install
         ```
-    *   For now, this step might not be strictly necessary if you only have `main.ts` and `types.ts` with no external libraries.
 
 ## Running the DPLL SAT Solver and Benchmark Harness
 
