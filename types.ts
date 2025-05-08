@@ -27,5 +27,5 @@ export type CnfFormula = Clause[];
  */
 
 
-type Assign = Map<number, boolean>;
+export type Assignment = Map<number, boolean>;
 
