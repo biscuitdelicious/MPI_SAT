@@ -7,8 +7,8 @@
 \usepackage{geometry}
 \usepackage{booktabs} % For nicer tables
 \usepackage{listings} % For code formatting if needed
-\usepackage{url} % For typesetting URLs
-\usepackage{parskip} % Adds space between paragraphs, can help with length slightly
+\usepackage{url} 
+\usepackage{parskip}
 
 
 \lstset{
@@ -16,7 +16,7 @@
   breaklines=true,
 }
 
-\geometry{a4paper, margin=1in} % Set reasonable margins
+\geometry{a4paper, margin=1in}
 
 \title{A Theoretical and Experimental Comparison of DP and DPLL Algorithms for the Boolean Satisfiability Problem}
 \author{Delinschii Vladislav\\ \texttt{vladislav.delinschii05@e-uvt.ro} \\ West University of Timisoara}
@@ -32,8 +32,7 @@ The Boolean Satisfiability (SAT) problem, a canonical NP-complete problem, is ce
 
 % --- The Introduction Section ---
 \section{Introduction}
-\label{sec:introduction} % Label for cross-referencing
-
+\label{sec:introduction} 
 The Boolean Satisfiability Problem (SAT) asks whether there exists an assignment of TRUE/FALSE values to the variables of a given Boolean formula such that the formula evaluates to TRUE. If such an assignment exists, the formula is deemed \emph{satisfiable}; otherwise, it is \emph{unsatisfiable} \cite{Autoblocks}. As the first problem proven NP-complete \cite{Cook1971}, SAT holds a position of fundamental importance in theoretical computer science and complexity theory. Its NP-completeness implies that, assuming P $\neq$ NP, no algorithm can solve all SAT instances efficiently in the worst case.
 
 Beyond its theoretical significance, SAT solving has become indispensable in numerous practical domains. Its power lies in the ability to encode a vast array of discrete constraint satisfaction problems into the simple, uniform language of Boolean logic. Consequently, advances in SAT solving algorithms directly translate into improved capabilities for tackling complex challenges in areas such as hardware and software verification, artificial intelligence (AI), planning, scheduling, cryptography, and bioinformatics \cite{Autoblocks}. The continued growth in these application areas constantly drives the need for more efficient and robust SAT solvers.
@@ -196,40 +195,42 @@ The results were aggregated and saved to \texttt{benchmark\_results.csv}.
 
 This section presents the key results obtained from running the DP and DPLL solvers on the benchmark suite described in \S\ref{sec:experiments}. Detailed results are available in the accompanying CSV file.
 
-% --- Add Table(s) Summarizing Results ---
-% Example: Use booktabs for nicer tables
-% \begin{table}[ht]
-% \centering
-% \caption{Comparison of Solver Performance on Selected Benchmarks}
-% \label{tab:results_summary}
-% \begin{tabular}{lllrr}
-% \toprule
-% Benchmark File & Solver/Heuristic & Status & Time (ms) & Decisions \\
-% \midrule
-% uf20-0995.cnf & DP & DP\_CLAUSE\_LIMIT & 1500.12 & 0 \\ % Example data
-% uf20-0995.cnf & DPLL-first & SATISFIABLE & 5.34 & 15 \\
-% uf20-0995.cnf & DPLL-random & SATISFIABLE & 6.88 & 22 \\
-% uf20-0995.cnf & DPLL-MOMS & SATISFIABLE & 3.12 & 8 \\
-% \midrule
-% uuf50-01.cnf & DP & DP\_CLAUSE\_LIMIT & 2500.45 & 0 \\ % Example data
-% uuf50-01.cnf & DPLL-first & UNSATISFIABLE & 250.76 & 5120 \\
-% uuf50-01.cnf & DPLL-random & UNSATISFIABLE & 310.91 & 6800 \\
-% uuf50-01.cnf & DPLL-MOMS & UNSATISFIABLE & 180.23 & 3500 \\
-% % ... Add more representative rows or averages ...
-% \bottomrule
-% \end{tabular}
-% \end{table}
-% Describe the table: "Table \ref{tab:results_summary} shows..."
 
-% --- Add Figure(s) (Optional but good) ---
-% Example:
-% \begin{figure}[ht]
-% \centering
-% \includegraphics[width=0.8\textwidth]{dpll_heuristics_comparison.png} % Assume you created this chart
-% \caption{Comparison of DPLL Heuristic Performance (Average Decisions on UF20)}
-% \label{fig:heuristic_chart}
-% \end{figure}
-% Describe the figure: "Figure \ref{fig:heuristic_chart} visualizes..."
+\begin{table}[ht]
+\centering
+\caption{Comparison of Solver Performance on Selected Benchmarks}
+\label{tab:results_summary}
+\begin{tabular}{lllrr}
+\toprule
+Benchmark File     & Solver/Heuristic & Status            & Time (ms) & Decisions \\
+\midrule
+dp\_sat\_2.cnf       & DP               & SATISFIABLE       & 1.40      & 0         \\
+                    & DPLL-first       & SATISFIABLE       & 0.33      & 1         \\
+                    & DPLL-random      & SATISFIABLE       & 0.18      & 1         \\
+                    & DPLL-moms        & SATISFIABLE       & 0.13      & 1         \\
+\midrule
+dp\_unsat\_3.cnf     & DP               & UNSATISFIABLE     & 0.69      & 0         \\
+                    & DPLL-first       & UNSATISFIABLE     & 0.30      & 0         \\
+                    & DPLL-random      & UNSATISFIABLE     & 0.06      & 0         \\
+                    & DPLL-moms        & UNSATISFIABLE     & 0.04      & 0         \\
+\midrule
+uf20-0995.cnf       & DP               & DP\_LIMIT (exp.)  & N/A       & N/A       \\
+                    & DPLL-first       & SATISFIABLE       & 1.64      & 24        \\
+                    & DPLL-random      & SATISFIABLE       & 0.64      & 10        \\
+                    & DPLL-moms        & SATISFIABLE       & 0.90      & 8         \\
+\midrule
+uf100-0999.cnf      & DP               & DP\_LIMIT (exp.)  & N/A       & N/A       \\
+                    & DPLL-first       & SATISFIABLE       & 4044.08   & 16105     \\
+                    & DPLL-random      & SATISFIABLE       & 4600.77   & 19051     \\
+                    & DPLL-moms        & SATISFIABLE       & 57.61     & 161       \\
+\midrule
+uuf125-083.cnf      & DP               & DP\_LIMIT (exp.)  & N/A       & N/A       \\
+                    & DPLL-first       & UNSATISFIABLE     & 44717.76  & 129175    \\
+                    & DPLL-random      & UNSATISFIABLE     & 157858.23 & 462808    \\
+                    & DPLL-moms        & UNSATISFIABLE     & 334.93    & 694       \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 Key observations from the results include:
 \begin{itemize}
@@ -247,11 +248,11 @@ The experimental results presented in \S\ref{sec:results} highlight several impo
 
 The NP-completeness of SAT implies that no known algorithm guarantees efficient solutions for all possible instances in the worst case. Finding a satisfying assignment, if one exists, can require exploring a potentially exponential search space. However, the remarkable practical success of solvers like DPLL and its modern descendants (such as Conflict-Driven Clause Learning - CDCL) on large, industrially relevant instances demonstrates that worst-case complexity does not always translate to poor average-case performance, especially on problems with inherent structure \cite{Autoblocks}. This practical utility continues to drive research into both algorithmic improvements and novel application domains.
 
-Our experiments vividly illustrate the performance gap between the classic DP algorithm and the DPLL approach. The DP solver's reliance on the resolution rule, while theoretically complete, leads to a practical bottleneck... % (Existing paragraph analyzing DP vs DPLL results seems good, ensure it uses your results)
+Our experiments vividly illustrate the performance gap between the classic DP algorithm and the DPLL approach. The DP solver's reliance on the resolution rule, while theoretically complete, leads to a practical bottleneck.
 
-DPLL, using a backtracking search approach, avoids storing a potentially massive set of intermediate clauses... % (Existing paragraph analyzing heuristics seems good, ensure it uses your specific results and mentions MOMS calculation overhead vs decision reduction)
+DPLL, using a backtracking search approach, avoids storing a potentially massive set of intermediate clauses.
 
-Limitations of this study include the use of a basic DP implementation lacking sophisticated optimizations like subsumption... % (Existing text seems good)
+Limitations of this study include the use of a basic DP implementation lacking sophisticated optimizations like subsumption...
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -265,44 +266,43 @@ These findings reinforce the importance of the DPLL algorithm's structure and th
 \section*{References}
 \label{sec:references}
 
-\begin{thebibliography}{9}
+\begin{thebibliography}{10}
 
-\bibitem{DP1960} % Example citation
+\bibitem{DP1960} 
 Martin Davis and Hilary Putnam.
 A computing procedure for quantification theory.
 \emph{Journal of the ACM (JACM)}, 7(3):201–215, 1960.
 
-\bibitem{DPLL1962} % Example citation
+\bibitem{DPLL1962} 
 Martin Davis, George Logemann, and Donald Loveland.
 A machine program for theorem-proving.
 \emph{Communications of the ACM}, 5(7):394–397, 1962.
 
-\bibitem{ANU_Slides} % Example citation
+\bibitem{ANU_Slides} 
 Lecture 4: DPLL.
 COMP6463, Australian National University.
 Accessed [Date Accessed].
 \url{https://users.cecs.anu.edu.au/~tiu/teaching/comp6463/lecture4.pdf}
 
-\bibitem{CMU_Notes} % Example citation
+\bibitem{CMU_Notes} 
 Boolean Satisfiability Solvers: Techniques and Implementations.
 Course Notes (e.g., 15-820A), Carnegie Mellon University.
 Accessed [Date Accessed].
 \url{https://www.cs.cmu.edu/~emc/15-820A/reading/sat_cmu.pdf}
 
-\bibitem{SATLib} % Example citation for SATLib
+\bibitem{SATLib} 
 Holger H. Hoos and Thomas Stützle.
 SATLIB: An Online Resource for Research on SAT.
 In \emph{SAT 2000}, pages 283-292. IOS Press, 2000.
 \url{http://www.satlib.org} 
-% Add others as needed, e.g., the Autoblocks link if you used its definition directly.
 
-\bibitem{Autoblocks} % Add Autoblocks citation
+\bibitem{Autoblocks} 
 Autoblocks AI.
 Boolean Satisfiability Problem.
-Glossary Entry. Accessed [Date Accessed]. % <<< Add Date Accessed!
+Glossary Entry. Accessed [May 2 2025]. % Added accessed for reference(content might change).
 \url{https://www.autoblocks.ai/glossary/boolean-satisfiability-problem}
 
-\bibitem{Cook1971} % Add Cook's Theorem citation
+\bibitem{Cook1971}
 Stephen A. Cook.
 The complexity of theorem-proving procedures.
 In \emph{Proceedings of the third annual ACM symposium on Theory of computing}, pages 151–158, 1971.
