@@ -73,7 +73,6 @@ The `main.ts` script is configured to run a benchmark harness that tests the DP 
     *   Alternatively, if you compile the TypeScript to JavaScript (e.g., using `tsc`), you can run the compiled file:
         ```bash
         tsc main.ts
-        node main.js
         ```
 
 3.  **Understanding the Output:**
