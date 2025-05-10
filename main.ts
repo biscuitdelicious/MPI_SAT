@@ -487,95 +487,13 @@ function dpll(
     return { satisfiable: false };
 }
 
-
-// --- Example Usage ---
-// const parseResult = parseDIMACS(filePathCNF); // This will be called within runSolver
-
-// if (parseResult) {
-    // console.log("Formula parsed:", parseResult); // Removed for cleaner output
-    // The specific examples below are removed as runSolver is the main interface now.
-    /*
-    if (parseResult.formula.length > 0) {
-        // Example 1: Simplify assuming literal '1' is true
-        const literalToTest1 = 1; 
-        console.log(`\nTesting simplification with literal ${literalToTest1} = true:`);
-        const simplifiedResult1 = simplifyFormula(parseResult.formula, literalToTest1);
-
-        if (simplifiedResult1 === 'CONFLICT') {
-            console.log("Result: CONFLICT");
-        } else {
-            console.log("Simplified Formula:");
-            console.log(simplifiedResult1.map(clause => Array.from(clause)));
-        }
-
-        // Example 2: Simplify assuming literal '-2' is true (variable 2 is false)
-        const literalToTest2 = -2;
-        if (parseResult.numVariables >= Math.abs(literalToTest2)) { 
-            console.log(`\nTesting simplification with literal ${literalToTest2} = true:`);
-            const simplifiedResult2 = simplifyFormula(parseResult.formula, literalToTest2);
-
-            if (simplifiedResult2 === 'CONFLICT') {
-                console.log("Result: CONFLICT");
-            } else {
-                console.log("Simplified Formula:");
-                console.log(simplifiedResult2.map(clause => Array.from(clause)));
-            }
-        }
-
-        console.log("\nTesting Unit Propagation with initial empty assignment:");
-        const initialAssignment = new Map<number, boolean>(); 
-        const propagationResult = applyUnitPropagation(parseResult.formula, initialAssignment);
-
-        console.log("Unit Propagation Result:");
-        if (propagationResult.updatedFormula === 'CONFLICT') {
-            console.log("  Formula: CONFLICT");
-        } else {
-            console.log("  Updated Formula:");
-            if (propagationResult.updatedFormula.length === 0) {
-                console.log("    (Formula is empty - potentially SAT if all variables assigned)");
-            } else {
-                console.log(propagationResult.updatedFormula.map(clause => Array.from(clause)));
-            }
-        }
-        console.log("  Updated Assignment:");
-        console.log(propagationResult.updatedAssignment);
-    }
-    */
-
-    // --- Testing DPLL (Direct call removed, runSolver is used) ---
-    /*
-    console.log("\n--- Running DPLL Solver ---");
-    const startTime = performance.now(); 
-    const initialDpllAssignment: Assignment = new Map<number, boolean>();
-    const dpllResult = dpll(
-        parseResult.formula,
-        initialDpllAssignment,
-        parseResult.numVariables,
-        selectVariable_FirstAvailable 
-    );
-    const endTime = performance.now(); 
-
-    if (dpllResult.satisfiable) {
-        console.log("Result: SATISFIABLE");
-        console.log("Satisfying Assignment:");
-        const sortedAssignment = new Map([...(dpllResult.assignment || new Map()).entries()].sort((a, b) => a[0] - b[0]));
-        console.log(sortedAssignment);
-    } else {
-        console.log("Result: UNSATISFIABLE");   
-    }
-    console.log(`DPLL took ${(endTime - startTime).toFixed(2)} ms`); 
-    */
-// } else {
-//     console.log("Parsing failed."); // Error handling is within runSolver
-// }
-
 // --- Top-Level Solver Interface ---
 type HeuristicFunction = (formula: CnfFormula, assignment: Assignment, numVariables: number) => number | null;
 
 interface SolverResult {
     filePath: string;
     heuristicName: string;
-    status: 'SATISFIABLE' | 'UNSATISFIABLE' | 'PARSING_FAILED' | 'HEURISTIC_NOT_FOUND' | 'EMPTY_FORMULA_SAT' | 'DP_CLAUSE_LIMIT' | 'DP_MAX_ITERATIONS';
+    status: 'SATISFIABLE' | 'UNSATISFIABLE' | 'PARSING_FAILED' | 'HEURISTIC_NOT_FOUND' | 'EMPTY_FORMULA_SAT' | 'DP_CLAUSE_LIMIT' | 'DP_MAX_ITERATIONS' | 'MAX_ITERATIONS_REACHED';
     timeMs: number;
     decisions: number;
     assignment?: Assignment;
@@ -586,12 +504,13 @@ const heuristics: Record<string, HeuristicFunction | string> = {
     'first': selectVariable_FirstAvailable,
     'random': selectVariable_Random,
     'moms': selectVariable_MOMS,
+    'resolution': 'resolution_solver_placeholder' // Placeholder for pure resolution
 };
 
 const MAX_CLAUSES_DP = 5000; // Safety limit
 
 function runSolver(filePath: string, heuristicKey: string): SolverResult {
-    const decisionCounter = { count: 0 }; // For DPLL, DP decisions are not counted this way
+    const decisionCounter = { count: 0 }; // For DPLL, DP/Resolution decisions are not counted this way
     const startTime = performance.now();
 
     const parseResult = parseDIMACS(filePath);
@@ -620,6 +539,7 @@ function runSolver(filePath: string, heuristicKey: string): SolverResult {
     
     let dpllRunResult: { satisfiable: boolean; assignment?: Assignment };
     let dpRunResult: { satisfiable: boolean; assignment?: undefined; status?: 'CLAUSE_LIMIT_REACHED' | 'MAX_ITERATIONS_REACHED' };
+    let resolutionRunResult: { satisfiable: boolean; status?: 'MAX_ITERATIONS_REACHED' }; // Added for resolution
     let finalStatus: SolverResult['status'];
     let finalAssignment: Assignment | undefined = undefined;
     let actualHeuristicName = heuristicKey;
@@ -636,6 +556,16 @@ function runSolver(filePath: string, heuristicKey: string): SolverResult {
             finalStatus = dpRunResult.satisfiable ? 'SATISFIABLE' : 'UNSATISFIABLE';
         }
         // No assignment from DP
+    } else if (heuristicKey === 'resolution') { // Handle resolution solver
+        actualHeuristicName = 'Resolution';
+        resolutionRunResult = resolutionSolver(formula);
+        decisionCounter.count = 0; // Resolution doesn't use this type of decision counter
+        if (resolutionRunResult.status === 'MAX_ITERATIONS_REACHED') {
+            finalStatus = 'MAX_ITERATIONS_REACHED';
+        } else {
+            finalStatus = resolutionRunResult.satisfiable ? 'SATISFIABLE' : 'UNSATISFIABLE';
+        }
+        // No direct assignment from this pure resolution solver
     } else {
         const selectedHeuristic = heuristics[heuristicKey.toLowerCase()] as HeuristicFunction;
         if (!selectedHeuristic || typeof selectedHeuristic !== 'function') {
@@ -647,13 +577,14 @@ function runSolver(filePath: string, heuristicKey: string): SolverResult {
                 decisions: 0
             };
         }
+        actualHeuristicName = heuristicKey.charAt(0).toUpperCase() + heuristicKey.slice(1); // Capitalize for display
         dpllRunResult = dpll(
-        formula,
+            formula,
             new Map<number, boolean>(),
-        numVariables,
+            numVariables,
             selectedHeuristic,
             decisionCounter
-    );
+        );
         finalStatus = dpllRunResult.satisfiable ? 'SATISFIABLE' : 'UNSATISFIABLE';
         finalAssignment = dpllRunResult.assignment;
     }
@@ -759,7 +690,7 @@ function applyDPUnitPropagation(inputFormula: CnfFormula): { formula: CnfFormula
                 iterationChanged = true;
             }
             formulaToProcess = simplifiedResult; // Assign the CnfFormula back
-    } else {
+            } else {
             iterationChanged = false; 
         }
     }
@@ -857,7 +788,7 @@ function dpSolver(
             if (pleResult.changed) {
                 formula = pleResult.formula as CnfFormula;
                 changedInSimplificationLoop = true;
-            } else {
+    } else {
                 formula = pleResult.formula as CnfFormula;
             }
         } while (changedInSimplificationLoop);
@@ -949,6 +880,10 @@ function dpSolver(
         lastFormulaStringState = formulaAfterResolutionStr;
 
         if (formula.length === 0) return { satisfiable: true };
+
+        if (iter % 100 === 0) { // Log every 100 iterations
+            console.log(`Resolution Iteration: ${iter}, Active Clauses: ${formula.length}, New Resolvents in Batch: ${resolvents.length}`);
+        }
     }
 
     // console.warn("DP Solver exceeded max iterations. Returning UNSAT as a fallback.");
@@ -978,6 +913,12 @@ async function runBenchmarkHarness(benchmarkFiles: string[], heuristicNames: str
                 continue; // Skip DP for this file
             }
 
+            // Check if Resolution should run on this file (only for files eligible for DP)
+            if (heuristicName === 'resolution' && !dpEligibleFiles.has(filePath)) {
+                console.log(`  [ ] Heuristic: Resolution  | Status: SKIPPED (not in dp list for resolution)`);
+                continue; // Skip Resolution for this file
+            }
+
             // process.stdout.write(`  Running with heuristic '${heuristicName}'... `);
             const result = runSolver(filePath, heuristicName);
             allResults.push(result);
@@ -992,7 +933,7 @@ async function runBenchmarkHarness(benchmarkFiles: string[], heuristicNames: str
             let logMessage = `  [${statusIndicator}] Heuristic: ${heuristicFormatted} | Status: ${result.status.padEnd(17)}`;
             if (result.status === 'SATISFIABLE' || result.status === 'UNSATISFIABLE' || result.status === 'EMPTY_FORMULA_SAT') {
                 logMessage += ` | Time: ${String(result.timeMs).padStart(7)}ms | Decisions: ${String(result.decisions).padStart(7)}`;
-            } else {
+} else {
                 logMessage += ` | Time: ${String(result.timeMs).padStart(7)}ms`;
             }
             console.log(logMessage);
@@ -1098,7 +1039,7 @@ function loadBenchmarkFilesFromList(listPath: string): string[] {
         // @ts-ignore
         if (error.code === 'ENOENT') {
             console.warn(`Warning: Benchmark list file '${listPath}' not found. Please create it and list your .cnf files, one per line.`);
-        } else {
+    } else {
             console.error(`Error reading benchmark list file '${listPath}':`, error);
         }
         return [];
@@ -1168,7 +1109,8 @@ const allBenchmarkFilesToTest: string[] = loadBenchmarkFilesFromList(benchmarkLi
 // the harness uses the benchmarkFilesToTest array.
 // console.log(`Using CNF file: ${filePathCNF}`); // This line is now less relevant for harness runs
 
-const heuristicsToTest = Object.keys(heuristics);
+// Define the heuristics to test, including resolution
+const heuristicsToTest = ['dp', 'first', 'random', 'moms', 'resolution'];
 
 if (allBenchmarkFilesToTest.length > 0) {
     runBenchmarkHarness(allBenchmarkFilesToTest, heuristicsToTest, dpEligibleFiles)
@@ -1189,4 +1131,86 @@ if (allBenchmarkFilesToTest.length > 0) {
 // if (!parseResultGlobal) {
 //     console.error(`\nError: Failed to parse the main CNF file: ${filePathCNF} for any potential post-solver operations.`);
 // }
+
+// --- Resolution Solver Implementation ---
+function resolutionSolver(formula: CnfFormula): { satisfiable: boolean; status?: 'MAX_ITERATIONS_REACHED' } {
+    const MAX_ITERATIONS = 100000; // Safety limit for resolution steps
+    let currentFormula = formula.map(c => new Set(c)); // Deep copy
+    const seenClausesInFormula = new Set<string>(); // To keep track of unique clauses ever in currentFormula
+
+    // Initial population of seenClausesInFormula
+    for (const clause of currentFormula) {
+        const canonical = Array.from(clause).sort((a, b) => a - b).join(',');
+        seenClausesInFormula.add(canonical);
+    }
+    
+    let iterationCount = 0;
+
+    while (iterationCount < MAX_ITERATIONS) {
+        if (currentFormula.some(c => c.size === 0)) {
+            return { satisfiable: false };
+        }
+        if (currentFormula.length === 0) {
+            return { satisfiable: true };
+        }
+
+        const newResolventsBatch: CnfFormula = [];
+        const seenNewResolventsCanonicalInBatch = new Set<string>();
+        let newClauseAddedThisIteration = false;
+
+        for (let i = 0; i < currentFormula.length; i++) {
+            for (let j = i + 1; j < currentFormula.length; j++) {
+                const c1 = currentFormula[i];
+                const c2 = currentFormula[j];
+
+                for (const lit1 of c1) {
+                    if (c2.has(-lit1)) {
+                        const resolvent = new Set<Literal>();
+                        for (const l of c1) if (l !== lit1) resolvent.add(l);
+                        for (const l of c2) if (l !== -lit1) resolvent.add(l);
+
+                        let isTautology = false;
+                        for (const l of resolvent) {
+                            if (resolvent.has(-l)) {
+                                isTautology = true;
+                                break;
+                            }
+                        }
+                        if (isTautology) continue;
+                        
+                        if (resolvent.size === 0) return { satisfiable: false };
+
+                        const canonical = Array.from(resolvent).sort((a, b) => a - b).join(',');
+                        if (!seenClausesInFormula.has(canonical) && !seenNewResolventsCanonicalInBatch.has(canonical)) {
+                            newResolventsBatch.push(resolvent);
+                            seenNewResolventsCanonicalInBatch.add(canonical);
+                            newClauseAddedThisIteration = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!newClauseAddedThisIteration) {
+            return { satisfiable: true };
+        }
+
+        for (const resolvent of newResolventsBatch) {
+            currentFormula.push(resolvent);
+            // The canonical form was already generated and used for seenNewResolventsCanonicalInBatch
+            // We need to add it to the global seenClausesInFormula
+            const canonical = Array.from(resolvent).sort((a, b) => a - b).join(','); 
+            seenClausesInFormula.add(canonical);
+        }
+        
+        if (iterationCount % 100 === 0) { // Log every 100 iterations
+            console.log(`Resolution Iteration: ${iterationCount}, Active Clauses: ${currentFormula.length}, New Resolvents in Batch: ${newResolventsBatch.length}`);
+        }
+        iterationCount++;
+    }
+
+    return { satisfiable: false, status: 'MAX_ITERATIONS_REACHED' };
+}
+
+
 

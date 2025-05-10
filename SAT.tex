@@ -18,28 +18,27 @@
 
 \geometry{a4paper, margin=1in}
 
-\title{A Theoretical and Experimental Comparison of DP and DPLL Algorithms for the Boolean Satisfiability Problem}
+\title{A Theoretical and Experimental Comparison of Resolution, DP, and DPLL Algorithms for the Boolean Satisfiability Problem}
 \author{Delinschii Vladislav\\ \texttt{vladislav.delinschii05@e-uvt.ro} \\ West University of Timisoara}
-\date{April 2024} 
+\date{May 2024} 
 
 \begin{document}
 \maketitle
 
 % --- Abstract ---
 \begin{abstract}
-The Boolean Satisfiability (SAT) problem, a canonical NP-complete problem, is central to computer science and artificial intelligence. This paper explores methods for solving SAT, focusing on a theoretical and experimental comparison between the classic Davis-Putnam (DP) algorithm and Davis-Putnam-Logemann-Loveland (DPLL) algorithm. I implemented both algorithms in TypeScript, incorporating unit propagation, pure literal elimination, and multiple branching heuristics (First Available, Random, MOMS) within DPLL. Experiments were conducted on standard CNF benchmarks to evaluate performance based on execution time and, for DPLL, the number of branching decisions. Results confirm DPLL's significant practical advantages over the basic DP approach, which suffered from memory limitations, due to its resolution-based variable elimination. With DPLL, the MOMS heuristic demonstrated a better performance in reducing the search space compared to simpler heuristics, highlighting the critical impact of choice strategies in tackling SAT. The implementation and experimental data are publicly available.
+The Boolean Satisfiability (SAT) problem, a canonical NP-complete problem, is central to computer science and artificial intelligence. This paper explores methods for solving SAT, focusing on a theoretical and experimental comparison between a pure resolution-based approach, the classic Davis-Putnam (DP) algorithm, and the Davis-Putnam-Logemann-Loveland (DPLL) algorithm. The DP and DPLL algorithms were implemented in TypeScript, with DPLL incorporating unit propagation, pure literal elimination, and multiple branching heuristics (First Available, Random, MOMS). A pure resolution solver was also implemented to provide a baseline. Experiments were conducted on standard CNF benchmarks to evaluate performance based on execution time and, for DPLL, the number of branching decisions. Results confirm DPLL's significant practical advantages over both the basic DP approach (which suffered from memory limitations due to its resolution-based variable elimination on larger instances) and the pure resolution method (which exhibited severe performance degradation and memory exhaustion even on moderately sized instances due to clause explosion). With DPLL, the MOMS heuristic generally demonstrated better performance in reducing the search space compared to simpler heuristics, highlighting the critical impact of choice strategies in tackling SAT. The implementation and experimental data are publicly available.
 \end{abstract}
 
-% --- The Introduction Section ---
 \section{Introduction}
 \label{sec:introduction} 
 The Boolean Satisfiability Problem (SAT) asks whether there exists an assignment of TRUE/FALSE values to the variables of a given Boolean formula such that the formula evaluates to TRUE. If such an assignment exists, the formula is deemed \emph{satisfiable}; otherwise, it is \emph{unsatisfiable} \cite{Autoblocks}. As the first problem proven NP-complete \cite{Cook1971}, SAT holds a position of fundamental importance in theoretical computer science and complexity theory. Its NP-completeness implies that, assuming P $\neq$ NP, no algorithm can solve all SAT instances efficiently in the worst case.
 
 Beyond its theoretical significance, SAT solving has become indispensable in numerous practical domains. Its power lies in the ability to encode a vast array of discrete constraint satisfaction problems into the simple, uniform language of Boolean logic. Consequently, advances in SAT solving algorithms directly translate into improved capabilities for tackling complex challenges in areas such as hardware and software verification, artificial intelligence (AI), planning, scheduling, cryptography, and bioinformatics \cite{Autoblocks}. The continued growth in these application areas constantly drives the need for more efficient and robust SAT solvers.
 
-This paper revisits two foundational algorithms that went the way for modern SAT solving: the Davis-Putnam (DP) procedure and its influential, refined algorithm, the Davis-Putnam-Logemann-Loveland (DPLL). DP, originating around 1960, primarily utilized variable elimination via the resolution inference rule. while complete, this approach often suffered from large memory requirements. DPLL, developed shortly after in 1962, introduced the recursive backtracking search, incorporating crucial simplification techniques like \textbf{unit propagation}, which remains central to contemporary solvers. A key aspect of DPLL's performance, and a focus of this work, is the impact of \emph{heuristics} used to guide the branching choices during the search.
+This paper revisits two foundational algorithms that paved the way for modern SAT solving: the Davis-Putnam (DP) procedure and its influential refinement, the Davis-Putnam-Logemann-Loveland (DPLL). DP, originating around 1960, primarily utilized variable elimination via the resolution inference rule. while complete, this approach often suffered from large memory requirements. DPLL, developed shortly after in 1962, introduced the recursive backtracking search, incorporating crucial simplification techniques like \textbf{unit propagation}, which remains central to contemporary solvers. A key aspect of DPLL's performance, and a focus of this work, is the impact of \emph{heuristics} used to guide the branching choices during the search. This paper extends this comparison by also implementing and evaluating a standalone, pure resolution-based solver, providing a clearer contrast to the more structured approach of DP and the search-based method of DPLL.
 
-Our goal is to provide both a theoretical overview and an experimental comparison of DP and DPLL. We have implemented these algorithms in TypeScript (\S\ref{sec:implementation}), integrating several distinct choice strategies within the DPLL framework (\S\ref{subsec:dpll_heuristics_impl}). Through experiments conducted on standard benchmark instances (\S\ref{sec:experiments}), we aim to quantitatively analyze and compare the performance characteristics of these approaches (\S\ref{sec:results}, \S\ref{sec:discussion}). The paper concludes (\S\ref{sec:conclusion}) by summarizing the findings and reflecting on the trajectory of SAT solving research.
+Our goal is to provide both a theoretical overview and an experimental comparison of these three approaches: pure Resolution, DP, and DPLL. We have implemented these algorithms in TypeScript (\S\ref{sec:implementation}), integrating several distinct choice strategies within the DPLL framework (\S\ref{subsec:dpll_heuristics_impl}). Through experiments conducted on standard benchmark instances (\S\ref{sec:experiments}), we aim to quantitatively analyze and compare the performance characteristics of these approaches (\S\ref{sec:results}, \S\ref{sec:discussion}). The paper concludes (\S\ref{sec:conclusion}) by summarizing the findings and reflecting on the trajectory of SAT solving research.
 
 
 \section{Background and Preliminaries}
@@ -79,12 +78,12 @@ Resolution is a sound and complete inference rule primarily used for proving \em
 \[
 \frac{(A \lor x) \quad (B \lor \lnot x)}{(A \lor B)}
 \]
-where $A$ and $B$ represent disjunctions of other literals. A resolution-based procedure repeatedly applies this rule. If the empty clause (containing no literals, denoted $\Box$, representing a contradiction) can be derived, the original formula is declared unsatisfiable. While complete, resolution can suffer from generating an exponential number of intermediate clauses.
+where $A$ and $B$ represent disjunctions of other literals. A pure resolution-based procedure repeatedly applies this rule to the entire set of clauses. If the empty clause (containing no literals, denoted $\Box$, representing a contradiction) can be derived, the original formula is declared unsatisfiable. If the process saturates (no new unique, non-tautological clauses can be derived) without finding an empty clause, the formula is satisfiable. While complete, a naive application of resolution can suffer from generating an exponential number of intermediate clauses, leading to significant time and memory consumption.
 
 \subsubsection{Davis-Putnam (DP) Algorithm}
 \label{subsubsec:dp}
 
-The original Davis-Putnam (DP) algorithm (often dated to 1960) primarily tackled SAT using \textbf {variable elimination} through resolution. It iteratively selected a variable $x$ and performed all possible resolutions between clauses containing $x$ and clauses containing $\lnot x$. After generating these resolvents, all original clauses containing $x$ or $\lnot x$ were discarded, effectively eliminating $x$. While effective for some problems, this approach could lead to significant memory consumption due to the potentially large number of generated resolvents.
+The original Davis-Putnam (DP) algorithm (often dated to 1960) primarily tackled SAT using \textbf {variable elimination} through resolution. It iteratively selected a variable $x$ and performed all possible resolutions between clauses containing $x$ and clauses containing $\lnot x$. After generating these resolvents, all original clauses containing $x$ or $\lnot x$ were discarded, effectively eliminating $x$. While effective for some problems, this approach could lead to significant memory consumption due to the potentially large number of generated resolvents, especially on larger instances.
 
 \subsubsection{Davis-Putnam-Logemann-Loveland (DPLL) Algorithm}
 \label{subsubsec:dpll}
@@ -107,7 +106,7 @@ The efficiency of the DPLL algorithm's splitting rule heavily depends on the str
 \section{Implementation Details}
 \label{sec:implementation}
 
-This section details the implementation choices made for the DP and DPLL algorithms in TypeScript, executed using Node.js.
+This section details the implementation choices made for the pure Resolution, DP, and DPLL algorithms in TypeScript, executed using Node.js.
 
 \subsection{Core Data Structures}
 The core data structures used are defined in \texttt{types.ts}:
@@ -148,8 +147,23 @@ The classic Davis-Putnam algorithm is implemented in the \texttt{dpSolver} funct
 \end{enumerate}
 As expected from the theory, this DP implementation does not efficiently reconstruct a satisfying assignment and can consume significant memory, potentially failing on larger instances due to clause set explosion.
 
+\subsection{Pure Resolution Algorithm}
+\label{subsec:pure_resolution_impl}
+In addition to DP and DPLL, a standalone solver based on the pure resolution principle (as described in Section \ref{subsubsec:resolution}) was implemented as the \texttt{resolutionSolver} function. This algorithm operates as follows:
+\begin{enumerate}
+    \item The formula is initialized, and all unique clauses are tracked using their canonical string representation in a set.
+    \item Iteratively, all possible pairs of clauses in the current formula are considered.
+    \item For each pair containing complementary literals, a resolvent is generated by combining literals from both parent clauses, excluding the complementary pair.
+    \item Tautological resolvents (clauses containing a literal and its negation) are discarded. If an empty clause (a clause with no literals) is derived, the formula is immediately declared UNSATISFIABLE.
+    \item New resolvents that are not already present in the formula (checked via their canonical form) are collected.
+    \item If an iteration completes and no new unique, non-tautological resolvents were added, and no empty clause has been found, the formula is declared SATISFIABLE (as it has been saturated with all possible consequences).
+    \item The newly generated unique resolvents are added to the formula for the next iteration.
+    \item A maximum iteration limit (\texttt{MAX\_ITERATIONS = 100000}) is enforced to handle cases where the process does not terminate quickly due to clause explosion, reporting a 'MAX\_ITERATIONS\_REACHED' status and typically indicating unsatisfiability or an inability to solve within limits.
+\end{enumerate}
+This implementation is designed to demonstrate the fundamental resolution procedure. It does not include advanced optimizations like subsumption or sophisticated clause indexing, which are critical for the performance of modern resolution provers but are beyond the scope of this baseline implementation.
+
 \subsection{Benchmarking Harness}
-The \texttt{runBenchmarkHarness} orchestrates the experiments. It reads benchmark filenames from \texttt{data/benchmarks.list}, loops through each file and each algorithm/heuristic combination (DP, DPLL-first, DPLL-random, DPLL-MOMS), calls the respective solver via \texttt{runSolver}, and collects results (\texttt{SolverResult} interface). \texttt{runSolver} measures execution time using Node.js's \texttt{performance.now()} and manages the DPLL decision counter. Results are printed to the console and saved to \texttt{benchmark\_results.csv}.
+The \texttt{runBenchmarkHarness} shows the experiments. It reads benchmark filenames from \texttt{data/benchmarks.list}, loops through each file and each algorithm/heuristic combination (DP, DPLL-first, DPLL-random, DPLL-MOMS), calls the respective solver via \texttt{runSolver}, and collects results (\texttt{SolverResult} interface). \texttt{runSolver} measures execution time using Node.js's \texttt{performance.now()} and manages the DPLL decision counter. Results are printed to the console and saved to \texttt{benchmark\_results.csv}.
 
 \subsection{Code Availability}
 The complete TypeScript implementation is available on GitHub:
@@ -158,7 +172,7 @@ The complete TypeScript implementation is available on GitHub:
 \section{Experimental Setup}
 \label{sec:experiments}
 
-To evaluate and compare the implemented DP and DPLL algorithms (with its heuristics), we conducted experiments using a set of standard benchmark instances.
+To evaluate and compare the implemented pure Resolution, DP, and DPLL algorithms (with its heuristics), we conducted experiments using a set of standard benchmark instances.
 
 \subsection{Benchmark Suite}
 The benchmark suite was configured via the \texttt{data/benchmarks.list} file and included instances primarily from the SATLib repository \cite{SATLib}. We selected a mix of satisfiable (uf) and unsatisfiable (uuf) instances from the uf20/uf100/uuf250 series, representing problems with 20 variables/91 clauses, 100 variables/430 clauses, etc. 
@@ -238,7 +252,6 @@ Key observations from the results include:
     \item The DPLL solver successfully solved all tested instances within the uf20/uuf50 sets.
     \item Comparing DPLL heuristics, MOMS generally resulted in the lowest number of decisions.
     \item In terms of execution time for DPLL, MOMS was often the fastest, despite its higher overhead per decision, followed by first and then random. The random heuristic showed that sometimes it's much faster than choosing the first, while it doesn't guarantee always the success..
-    % Be specific based on YOUR actual CSV results!
 \end{itemize}
 
 \section{Discussion}
@@ -246,7 +259,7 @@ Key observations from the results include:
 
 The experimental results presented in \S\ref{sec:results} highlight several important aspects of the compared SAT solving algorithms and the nature of the SAT problem itself.
 
-The NP-completeness of SAT implies that no known algorithm guarantees efficient solutions for all possible instances in the worst case. Finding a satisfying assignment, if one exists, can require exploring a potentially exponential search space. However, the remarkable practical success of solvers like DPLL and its modern descendants (such as Conflict-Driven Clause Learning - CDCL) on large, industrially relevant instances demonstrates that worst-case complexity does not always translate to poor average-case performance, especially on problems with inherent structure \cite{Autoblocks}. This practical utility continues to drive research into both algorithmic improvements and novel application domains.
+The NP-completeness of SAT implies that no known algorithm guarantees efficient solutions for all possible instances in the worst case. Finding a satisfying assignment, if one exists, can require exploring a potentially exponential search space. However, the success of solvers like DPLL and its modern descendants (such as Conflict-Driven Clause Learning - CDCL) on large, industrially relevant instances demonstrates that worst-case complexity does not always translate to poor average-case performance, especially on problems with inherent structure \cite{Autoblocks}. This practical utility continues to drive research into both algorithmic improvements and novel application domains.
 
 Our experiments vividly illustrate the performance gap between the classic DP algorithm and the DPLL approach. The DP solver's reliance on the resolution rule, while theoretically complete, leads to a practical bottleneck.
 
